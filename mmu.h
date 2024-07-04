@@ -3,8 +3,16 @@
 #include <stdint.h>
 
 #define FRAME_NBITS (LOGICAL_ADDRESS_NBITS - PAGE_NBITS)
+#define FRAME_SIZE (1<<FRAME_NBITS)
 
 #define PAGE_FLAGS_NBITS 3
+
+// number of pages 
+#define NUM_PAGES (1<<PAGE_NBITS)
+
+// max memory
+#define MAX_MEMORY (1<<LOGICAL_ADDRESS_NBITS)
+
 
 typedef enum {
     Valid = 0x1,
@@ -24,8 +32,8 @@ typedef struct PageEntry {
 } PageEntry;
 
 typedef struct MMU {
+    PageEntry* pages;   // paging table
     uint32_t num_pages;
-    PageEntry* pages;   // tabella delle pagine
 } MMU;
 
 typedef uint32_t PhysicalAddress;
