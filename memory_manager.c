@@ -1,11 +1,11 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <memory_manager.h>
+#include "memory_manager.h"
 
 GlobalMemoryLayout m;
 
-FrameItem physical_memory[NUM_FRAMES];
+//FrameItem physical_memory[NUM_FRAMES];
 
 /*
     At the beginning the physical memory is all free and 
@@ -82,7 +82,6 @@ uint32_t Memory_freePages() {
     1. Set to -1 (invalid) the pid associated to each frame
     2. Detach the ProcessMemoryItem from the process_list
 */
-
 
 void Memory_destroyProcessMemoryItem(ProcessMemoryItem* item) {
     for (int i = 0; i < NUM_PAGES; i++) {

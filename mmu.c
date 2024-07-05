@@ -46,3 +46,7 @@ char* MMU_readByte(MMU* mmu, int pos) {
     return flag; 
 
 }
+
+void MMU_exception(MMU* mmu, int pos) {
+    
+}
