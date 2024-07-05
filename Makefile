@@ -15,7 +15,6 @@ LIBS = lib_memory.a
 
 .phony: clean all
 
-
 all:	$(BINS) $(LIBS)
 
 lib_memory.a: $(OBJS) 
