@@ -4,6 +4,7 @@
 // bits used as index into the page table
 #define PAGE_NBITS 14
 
+#define PHYSICAL_MEMORY_SIZE (1<<20)
 
 /*
     offset = 24 - 14 = 10 

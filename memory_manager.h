@@ -23,7 +23,7 @@ void Memory_init();
 void Memory_shutdown();
 ProcessMemoryItem* Memory_byPid(int pid);
 ProcessMemoryItem* Memory_addProcessItem(int pid);
-void Memory_freePages();
+uint32_t Memory_freePages();
 void Memory_destroyProcessMemoryItem(ProcessMemoryItem* item);
 
 

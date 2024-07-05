@@ -2,8 +2,12 @@
 #include "constants.h"
 #include <stdint.h>
 
-#define FRAME_NBITS (LOGICAL_ADDRESS_NBITS - PAGE_NBITS)
-#define FRAME_SIZE (1<<FRAME_NBITS)
+#define OFFSET (LOGICAL_ADDRESS_NBITS - PAGE_NBITS)
+
+// size of a memory page
+#define PAGE_SIZE (1<<OFFSET)
+
+#define NUM_FRAMES (PHYSICAL_MEMORY_SIZE / PAGE_SIZE)
 
 #define PAGE_FLAGS_NBITS 3
 
@@ -23,7 +27,7 @@ typedef enum {
 
 typedef struct LogicalAddress {
     uint32_t page_number: PAGE_NBITS;
-    uint32_t offset: FRAME_NBITS;
+    uint32_t offset: OFFSET;
 } LogicalAddress;
 
 typedef struct PageEntry {

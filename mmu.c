@@ -16,7 +16,7 @@ uint32_t getPhysicalAddress(MMU* mmu, LogicalAddress logical_address) {
     // Now we can retrieve the physical address
     // phyiscal address = [ frame | offset ]
 
-    physical_address = (frame_number << FRAME_NBITS)|logical_address.offset;
+    physical_address = (frame_number << OFFSET)|logical_address.offset;
 
     return physical_address;
 }
