@@ -9,7 +9,7 @@
 
 #define NUM_FRAMES (PHYSICAL_MEMORY_SIZE / PAGE_SIZE)
 
-#define PAGE_FLAGS_NBITS 3
+#define PAGE_FLAGS_NBITS 5
 
 // number of pages 
 #define NUM_PAGES (1<<PAGE_NBITS)
@@ -21,8 +21,8 @@
 typedef enum {
     Valid = 0x1,
     Unswappable = 0x2,
-    read_bit = 0x3,
-    write_bit = 0x4
+    read_bit = 0x4,
+    write_bit = 0x8
 } Flags;
 
 typedef struct LogicalAddress {

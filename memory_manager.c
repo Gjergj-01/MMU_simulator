@@ -3,9 +3,7 @@
 #include <string.h>
 #include "memory_manager.h"
 
-GlobalMemoryLayout m;
-
-//FrameItem physical_memory[NUM_FRAMES];
+extern GlobalMemoryLayout m;
 
 /*
     At the beginning the physical memory is all free and 
@@ -92,4 +90,23 @@ void Memory_destroyProcessMemoryItem(ProcessMemoryItem* item) {
 
     List_detach(&m.process_list, (ListItem *) item);
     ProcessMemoryItem_free(item);
+}
+
+/*
+    Given the pid and the frame_num we retireve the 
+    frame_item
+*/
+
+FrameItem* Find_frame(int pid, uint32_t frame_num) {
+    ListItem* aux = m.frame_list.first;
+
+    while (aux) {
+        FrameItem* item = (FrameItem*) aux;
+        if (item->frame_num == frame_num && item->pid == pid) {
+            return item;
+        }
+        aux = aux->next;
+    }
+
+    return 0;
 }

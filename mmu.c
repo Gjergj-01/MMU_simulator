@@ -3,10 +3,10 @@
 #include "mmu.h"
 
 uint32_t getPhysicalAddress(MMU* mmu, LogicalAddress logical_address) {
-    //1. check that the page is in the page table
+    // we check that the page is in the page table
     //printf("page_number: %d\n", logical_address.page_number);
     //printf("num_pages: %d\n", mmu->num_pages);
-    assert(logical_address.page_number < mmu->num_pages && "invalid page");
+    assert((logical_address.page_number >= 0 && logical_address.page_number < mmu->num_pages) && "invalid page");
 
     PhysicalAddress physical_address;
 
@@ -23,7 +23,7 @@ uint32_t getPhysicalAddress(MMU* mmu, LogicalAddress logical_address) {
 
 void MMU_writeByte(MMU* mmu, int pos, char c) {
     // we check that the index is valid
-    assert(pos < mmu->num_pages && "index out of range");
+    assert((pos >= 0 && pos < mmu->num_pages) && "index out of range");
 
     // we check that the flag is valid 
     // in this case it can be "write_bit" or "read_bit"
@@ -37,7 +37,7 @@ void MMU_writeByte(MMU* mmu, int pos, char c) {
 
 char* MMU_readByte(MMU* mmu, int pos) {
     // we check that the index is valid
-    assert(pos < mmu->num_pages && "index out of range");
+    assert((pos >= 0 && pos < mmu->num_pages) && "index out of range");
 
     // if so we read the flag associated to the corresponding page
     char* flag = NULL;
@@ -47,6 +47,5 @@ char* MMU_readByte(MMU* mmu, int pos) {
 
 }
 
-void MMU_exception(MMU* mmu, int pos) {
-    
-}
+
+

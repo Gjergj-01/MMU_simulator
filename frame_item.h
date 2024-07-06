@@ -14,3 +14,4 @@ typedef struct FrameItem {
 FrameItem* FrameItem_alloc();
 int FrameItem_free(FrameItem* item);
 void FrameItem_init(FrameItem* item, int pid, uint32_t frame_num);
+FrameItem* Find_frame(int pid, uint32_t frame_num);
