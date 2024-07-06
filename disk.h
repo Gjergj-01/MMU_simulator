@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "linked_list.h"
+#include "frame_item.h"
 
 /*
     Here we create two records. The first one stores the informations
@@ -14,11 +15,6 @@
     DiskItem allocated
 */
 
-typedef struct DiskItem {
-    ListItem list;
-    int pid;
-    uint32_t page_num;
-} DiskItem;
 
 typedef struct DiskMemory {
     ListHead diskFrame_list;
@@ -26,7 +22,8 @@ typedef struct DiskMemory {
 
 void DiskMemory_init();
 void DiskMemory_shutdown();
-DiskItem* DiskItem_alloc();
-DiskItem* add_DiskItem(int pid, uint32_t page_num);
-DiskItem* Find_DiskItem(int pid, uint32_t page_num);
 
+//FrameItem* add_FrameItem(int pid, uint32_t page_num);
+void add_FrameDiskItem(FrameItem* item);
+FrameItem* Find_FrameDiskItem(int pid, uint32_t page_num);
+FrameItem* remove_FrameDiskItem(FrameItem* disk_item);

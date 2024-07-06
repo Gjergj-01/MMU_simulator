@@ -3,7 +3,7 @@
 #include <string.h>
 #include "memory_manager.h"
 
-extern GlobalMemoryLayout m;
+// extern GlobalMemoryLayout m;
 
 /*
     At the beginning the physical memory is all free and 
@@ -109,4 +109,16 @@ FrameItem* Find_frame(int pid, uint32_t frame_num) {
     }
 
     return 0;
+}
+
+FrameItem* remove_Frame(FrameItem* item) {
+    ListItem* removed_item = List_detach(&m.frame_list, (ListItem*) item);
+    return (FrameItem*) removed_item;
+}
+
+// we simply add the frame at the end of the frame list
+
+FrameItem* add_Frame(FrameItem* item) {
+    List_insert(&m.frame_list, m.frame_list.last, (ListItem*) item);
+    return item;
 }

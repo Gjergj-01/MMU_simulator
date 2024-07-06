@@ -18,6 +18,7 @@ typedef struct GlobalMemoryLayout {
     ListHead process_list;
 } GlobalMemoryLayout;
 
+extern GlobalMemoryLayout m;
 
 void Memory_init();
 void Memory_shutdown();
@@ -25,4 +26,7 @@ ProcessMemoryItem* Memory_byPid(int pid);
 ProcessMemoryItem* Memory_addProcessItem(int pid);
 uint32_t Memory_freePages();
 void Memory_destroyProcessMemoryItem(ProcessMemoryItem* item);
+
 FrameItem* Find_frame(int pid, uint32_t frame_num);
+FrameItem* remove_Frame(FrameItem* item);
+FrameItem* add_Frame(FrameItem* item);
