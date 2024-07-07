@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "memory_manager.h"
+#include "disk.h"
 
-// extern GlobalMemoryLayout m;
+GlobalMemoryLayout m;
 
 /*
     At the beginning the physical memory is all free and 
@@ -14,11 +15,10 @@
     3. we clear the process list
 */
 void Memory_init() {
-    for (int i = 0; i < NUM_PAGES; i++) {
-        m.frame_to_pid[i] = -1;
-    }
+    List_init(&m.frame_list);
 
     for (int i = 0; i < NUM_FRAMES; i++) {
+        m.frame_to_pid[i] = -1;
         FrameItem* pitem = FrameItem_alloc();
         FrameItem_init(pitem, -1, i);
         List_insert(&m.frame_list, m.frame_list.last, (ListItem*)pitem);
@@ -47,6 +47,7 @@ void Memory_shutdown() {
     }
 }
 
+
 // given the pid we retrieve the ProcessMemoryItem (if exists)
 
 ProcessMemoryItem *Memory_byPid(int pid) {
@@ -60,11 +61,14 @@ ProcessMemoryItem *Memory_byPid(int pid) {
 */
 
 ProcessMemoryItem* Memory_addProcessItem(int pid) {
-    ProcessMemoryItem* process = Memory_byPid(pid);
-    assert(process->pid != pid && "invalid bit");
+    //ProcessMemoryItem* process = Memory_byPid(pid);
+    assert(!Memory_byPid(pid) && "invalid_pid");
+    //assert(process->pid != pid && "invalid bit");
+    //printf("ALL FINE\n");
 
+    // all fine we can add the new process
     ProcessMemoryItem* new_process = ProcessMemoryItem_alloc(pid);
-    assert(new_process && "can't allocate a ProcessMemoryItem");
+    //assert(new_process && "can't allocate a ProcessMemoryItem");
     ProcessMemoryItem_init(new_process, pid);
     List_insert(&m.process_list, m.process_list.last, (ListItem*) new_process);
     return new_process;
@@ -90,6 +94,16 @@ void Memory_destroyProcessMemoryItem(ProcessMemoryItem* item) {
 
     List_detach(&m.process_list, (ListItem *) item);
     ProcessMemoryItem_free(item);
+}
+
+void print_PhysicalMemory() {
+    ListItem* aux = m.frame_list.first;
+    while (aux) {
+        FrameItem* frame = (FrameItem*) aux;
+        printf("PID: %d, FRAME_NUM: %d\n", frame->pid, frame->frame_num);
+        aux = aux->next;
+    }
+
 }
 
 /*
@@ -121,4 +135,88 @@ FrameItem* remove_Frame(FrameItem* item) {
 FrameItem* add_Frame(FrameItem* item) {
     List_insert(&m.frame_list, m.frame_list.last, (ListItem*) item);
     return item;
+}
+
+// this could become assign pages to frames;
+// void add_Pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
+//     int index = -1;
+//     // we check for the index from which we can start writing 
+//     // new pages
+//     for (int i = 0; i < NUM_PAGES; i++) {
+//         if (pmem->pages[i].flags == (~Valid)) {
+//             index = i;
+//             break;
+//         }
+//     }
+//     assert((index + num_pages) < NUM_PAGES && "not enough memory");
+//     for (int i = 0; i < num_pages; i++) {
+//         if (Memory_freePages() > 0) {
+//             // here we look for a free frame
+//             FrameItem* new_frame;
+//             ListItem* aux = m.frame_list.first;
+//             while(aux) {
+//                 FrameItem* frame = (FrameItem*) aux;
+//                 if (frame->pid == -1) {
+//                     new_frame = frame;
+//                     break;
+//                 }
+//             }
+//             pmem->pages[i+index].frame_number = new_frame->frame_num;
+//             pmem->pages[i+index].flags |= flags;
+//         }
+        
+//     }
+
+// }
+
+/*
+    This function mapps pages into frames. Until we have enough physical memory
+    we map it in the physical memory, then we "map" the pages in the disk memory.
+    NOTE: Here the disk memory holds FrameItems but in this case the field "frame_num"
+          memorizes the index of the paging table and not the frame number.
+*/
+
+void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
+    int index = -1;
+    // we check for the index from which we can start writing new pages
+    for (int i = 0; i < NUM_PAGES; i++) {
+        if (pmem->pages[i].frame_number == -1) {
+            index = i;
+            break;
+        }
+    }
+
+    //printf("PID: %d  ->  [index: %d]\n",pmem->pid, index);
+
+    if (index == -1) index = 0;
+
+    assert((index + num_pages) < NUM_PAGES && "not enough memory");
+
+    for (int i = 0; i < num_pages; i++) {
+        if (Memory_freePages() > 0) {
+            // we look for a free frame 
+            FrameItem* new_frame;
+            ListItem* aux = m.frame_list.first;
+            while (aux) {
+                FrameItem* frame = (FrameItem*) aux;
+                if (frame->pid == -1) {
+                    new_frame = frame;
+                    break;
+                }
+                aux = aux->next;
+            }
+            pmem->pages[i+index].frame_number = new_frame->frame_num;
+            pmem->pages[i+index].flags |= flags;
+            m.frame_to_pid[new_frame->frame_num] = pmem->pid;
+            List_detach(&m.frame_list, (ListItem*) new_frame);
+            List_insert(&pmem->frame_list, pmem->frame_list.last, (ListItem*) new_frame);
+        }
+        else {
+            // we finished space so we need to "map" the pages on disk
+            FrameItem* new_frame = FrameItem_alloc();
+            FrameItem_init(new_frame, pmem->pid, i+index);
+            add_FrameDiskItem(new_frame);
+        }
+    }
+
 }

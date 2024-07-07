@@ -35,7 +35,8 @@ void second_chance(MMU* mmu, int pos, int pid) {
             remove_FrameDiskItem(disk_item);
             add_Frame(disk_item);
             uint32_t frame_num = disk_item->frame_num;
-            m.frame_to_pid[frame_num] = disk_item->pid;
+            // RICORDATI DI RISOLVERE QUESTO!!!!!!!!!!!!!!
+            //m.frame_to_pid[frame_num] = disk_item->pid;
 
         }
         // otherwise we set the bit to zero and move on to the next page

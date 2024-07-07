@@ -22,6 +22,7 @@ typedef struct DiskMemory {
 
 void DiskMemory_init();
 void DiskMemory_shutdown();
+void print_DiskMemory();
 
 //FrameItem* add_FrameItem(int pid, uint32_t page_num);
 void add_FrameDiskItem(FrameItem* item);

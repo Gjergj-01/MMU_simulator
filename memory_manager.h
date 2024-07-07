@@ -13,12 +13,12 @@
 */
 
 typedef struct GlobalMemoryLayout {
-    int frame_to_pid[NUM_PAGES];
+    int frame_to_pid[NUM_FRAMES];
     ListHead frame_list;        // physical memory
     ListHead process_list;
 } GlobalMemoryLayout;
 
-extern GlobalMemoryLayout m;
+//extern GlobalMemoryLayout m;
 
 void Memory_init();
 void Memory_shutdown();
@@ -26,7 +26,12 @@ ProcessMemoryItem* Memory_byPid(int pid);
 ProcessMemoryItem* Memory_addProcessItem(int pid);
 uint32_t Memory_freePages();
 void Memory_destroyProcessMemoryItem(ProcessMemoryItem* item);
+void print_PhysicalMemory();
 
 FrameItem* Find_frame(int pid, uint32_t frame_num);
 FrameItem* remove_Frame(FrameItem* item);
 FrameItem* add_Frame(FrameItem* item);
+
+//void add_Pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags);
+
+void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags);
