@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "memory_manager.h"
 #include "disk.h"
@@ -39,12 +40,19 @@ void Memory_shutdown() {
         ProcessMemoryItem* process = (ProcessMemoryItem*) m.process_list.first;
         Memory_destroyProcessMemoryItem(process);
     }
+    printf("ALL FINE\n");
 
-    while (m.frame_list.first) {
-        FrameItem* frame = (FrameItem*) m.frame_list.first;
-        List_detach(&m.frame_list, m.frame_list.first);
-        FrameItem_free(frame);
-    }
+    // FrameItem* frame = (FrameItem*) pmem->frame_list.first;
+    // List_detach(&pmem->frame_list, (ListItem*) frame);
+    // free(frame);
+
+    //while (m.frame_list.first) {
+    //    FrameItem* frame = (FrameItem*) m.frame_list.first;
+    //    printf("frame_num: %d\n", frame->frame_num);
+    //    List_detach(&m.frame_list, (ListItem*) frame);
+    //    free(frame);
+    //}
+    //printf("ALL FINE\n");
 }
 
 
@@ -82,15 +90,21 @@ uint32_t Memory_freePages() {
     2. Detach the ProcessMemoryItem from the process_list
 */
 
-void Memory_destroyProcessMemoryItem(ProcessMemoryItem* item) {
-    for (int i = 0; i < NUM_PAGES; i++) {
-        if (m.frame_to_pid[i] == item->pid) {
+void Memory_destroyProcessMemoryItem(ProcessMemoryItem* pmem) {
+    for (int i = 0; i < NUM_FRAMES; i++) {
+        if (m.frame_to_pid[i] == pmem->pid) {
             m.frame_to_pid[i] = -1;
         }
     }
+    while (pmem->frame_list.first) {
+        FrameItem* frame = (FrameItem*) pmem->frame_list.first;
+        List_detach(&pmem->frame_list, (ListItem*) frame);
+        free(frame);
+    }
 
-    List_detach(&m.process_list, (ListItem *) item);
-    ProcessMemoryItem_free(item);
+    List_detach(&m.process_list, (ListItem *) pmem);
+    //ProcessMemoryItem_free(item);
+    free(pmem);
 }
 
 void print_PhysicalMemory() {
@@ -155,7 +169,7 @@ void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
         }
     }
 
-    printf("PID: %d  ->  [index: %d]\n",pmem->pid, index);
+    //printf("PID: %d  ->  [index: %d]\n",pmem->pid, index);
 
     if (index == -1) index = 0;
 
@@ -183,7 +197,7 @@ void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
         }
         else {
             // we finished space so we need to "map" the pages on disk
-            pmem->pages[i].flags = Valid;
+            pmem->pages[i+index].flags = Valid;
             FrameItem* new_frame = FrameItem_alloc();
             FrameItem_init(new_frame, pmem->pid, i+index);
             add_FrameDiskItem(new_frame);
@@ -192,48 +206,12 @@ void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
 
 }
 
-// void simulate_work(ProcessMemoryItem* pmem, int pos, uint32_t flags) {
-//     // we check that the index is Valid
-//     assert(pos >= 0 && pos < NUM_PAGES && "invalid index");
-
-//     // we check that the page has been assigend, if not we check the flag.
-//     // If this is "unswappable" we must put the page in the physical memory
-//     // so if there is no free space we call the second chance algorithm
-//     // otherwise we just assign it to a free frame. If the flag is not 
-//     // unswappable we can just call the assign_pages function
-
-//     if (pmem->pages[pos].flags == 0) {
-
-//         if (flags == (Valid + Unswappable)) {
-//             if (Memory_freePages() > 0) {
-//                 assign_pages(pmem, 1, (Valid + Unswappable));
-//             }
-//             else {
-//                 MMU_exception(pmem, pos);
-//             }
-//         }
-//     }
-
-//     else {
-//         if (pmem->pages[pos].frame_number != 0) {
-//             if (flags == write_bit) {
-//                 MMU_writeByte(pmem, pos, flags);
-//             }
-//             else {
-//                 MMU_readByte(pmem, pos);
-//             }
-//         }
-//         else {
-//             MMU_exception(pmem, pos);
-//         }
-//     }
-
-
-// }   
-
 void MMU_writeByte(ProcessMemoryItem* pmem, int pos, char c) {
     // we check that the index is valid 
     assert((pos >= 0 && pos < NUM_PAGES) && "invalid index");
+
+    // if we try to access a page not allocated we genrate a PAGE_FAULT
+    assert(pmem->pages[pos].flags != Invalid && "page_fault(segmentation_fault)");
 
     if (pmem->pages[pos].flags == Valid && pmem->pages[pos].frame_number == 0) {
         // we need to swap in the page that is on disk memory
@@ -250,9 +228,12 @@ void MMU_writeByte(ProcessMemoryItem* pmem, int pos, char c) {
 
 }
 
-char* MMU_readByte(ProcessMemoryItem* pmem, int pos) {
+char MMU_readByte(ProcessMemoryItem* pmem, int pos) {
     // we check that the index is valid 
     assert((pos >= 0 && pos < NUM_PAGES) && "index out of range");
+
+    // if we try to access a page not allocated we genrate a PAGE_FAULT
+    assert(pmem->pages[pos].flags != Invalid && "page_fault(segmentation_fault)");
 
     // if so we read the flag associated to the corresponding page
     if (pmem->pages[pos].flags == Valid && pmem->pages[pos].frame_number == 0) {
@@ -261,8 +242,8 @@ char* MMU_readByte(ProcessMemoryItem* pmem, int pos) {
     }
     
     // now we can read the character
-    char* c = 0;
-    *c = pmem->pages[pos].c;
+    char c = 0;
+    c = pmem->pages[pos].c;
 
     // we set the flags to read_bit
     pmem->pages[pos].flags |= read_bit;
@@ -289,9 +270,7 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
     */
 
     int found = 0;
-    //int i = 0;
     while(!found) {
-        //if (i >= NUM_FRAMES) i = 0;
 
         ListItem* item = m.process_list.first;
         while (item) {
@@ -315,6 +294,7 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
                         if (entry.flags == Valid) {
                             found = 1;
                             // we swap pages
+                            process->pages[k].frame_number = 0;
                             List_detach(&process->frame_list, (ListItem*) victim);
                             // now we save the frame victim on memory disk
                             victim->frame_num = k;
@@ -331,7 +311,8 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
                             break;
                         }
                     }
-                    else if (entry.flags == (Valid + Unswappable)) {
+                    else if (entry.flags == (Valid + Unswappable) || entry.flags == (Valid + Unswappable + read_bit)
+                                || entry.flags == (Valid + Unswappable + write_bit) || entry.flags == (Valid + Unswappable + read_bit + write_bit)) {
                         continue;
                     }
                     else {

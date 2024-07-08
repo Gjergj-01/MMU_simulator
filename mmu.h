@@ -9,7 +9,7 @@
 
 #define NUM_FRAMES (PHYSICAL_MEMORY_SIZE / PAGE_SIZE)
 
-#define PAGE_FLAGS_NBITS 5
+#define PAGE_FLAGS_NBITS 8
 
 // number of pages 
 #define NUM_PAGES (1<<PAGE_NBITS)
