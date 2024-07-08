@@ -33,6 +33,7 @@ typedef struct LogicalAddress {
 typedef struct PageEntry {
     uint32_t frame_number: PAGE_NBITS;
     uint32_t flags: PAGE_FLAGS_NBITS;
+    char c;
 } PageEntry;
 
 typedef struct MMU {

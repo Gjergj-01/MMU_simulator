@@ -171,6 +171,7 @@ void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
                 }
                 aux = aux->next;
             }
+            new_frame->pid = pmem->pid;
             pmem->pages[i+index].frame_number = new_frame->frame_num;
             pmem->pages[i+index].flags |= flags;
             m.frame_to_pid[new_frame->frame_num] = pmem->pid;
@@ -258,6 +259,7 @@ void MMU_exception(ProcessMemoryItem* pmem, int pos) {
     second_chance(pmem, pos);
 }
 
+
 void second_chance(ProcessMemoryItem* pmem, int pos) {
     int pid = pmem->pid;
 
@@ -265,48 +267,69 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
     // we check that the frame on disk is valid
     assert(disk_item && "frame on disk not valid");
 
+    /*
+        We need to find a victim frame. To do so we need to access
+        each ProcessMemoryItem and look in their frame_lists.
+    */
+
     int found = 0;
-    int i = 0;
+    //int i = 0;
+    while(!found) {
+        //if (i >= NUM_FRAMES) i = 0;
 
-    ListItem* aux = m.frame_list.first;
+        ListItem* item = m.process_list.first;
+        while (item) {
+            if (found) break;
 
-    while (!found) {
-        if (i >= NUM_FRAMES) {
-            i = 0;
-            aux = m.frame_list.first;
+            ProcessMemoryItem* process = (ProcessMemoryItem*) item;
+            int victim_pid = process->pid;
+
+            ListItem* aux = process->frame_list.first;
+            while (aux) {
+                if (found) break;
+
+                FrameItem* victim = (FrameItem*) aux;
+                // now we need to retireve the PageEntry 
+                uint32_t v_frame_num = victim->frame_num;
+                for (int k = 0; k < NUM_PAGES; k++) {
+                    PageEntry entry = process->pages[k];
+                    if (entry.frame_number == v_frame_num) {
+                        // once we find the correspondig page we check
+                        // the flags
+                        if (entry.flags == Valid) {
+                            found = 1;
+                            // we swap pages
+                            List_detach(&process->frame_list, (ListItem*) victim);
+                            // now we save the frame victim on memory disk
+                            victim->frame_num = k;
+                            printf("victim_pid %d\n", victim->pid);
+                            add_FrameDiskItem(victim);
+
+                            ProcessMemoryItem_addFrame(&pmem->frame_list, pmem->frame_list.last, disk_item);
+                            m.frame_to_pid[v_frame_num] = pmem->pid;
+
+                            printf("[Swapped-out page with index %d of porcess with PID %d\n",
+                                k, victim_pid);
+                            printf(" Swapped-in frame corresponding to page %d of process with PID %d]\n\n",
+                                disk_item->frame_num, pid);
+                            break;
+                        }
+                    }
+                    else if (entry.flags == (Valid + Unswappable)) {
+                        continue;
+                    }
+                    else {
+                        entry.flags = Valid;
+                    }
+                }
+                aux = aux->next;
+            }
+
+            item = item->next;
         }
 
-        FrameItem* frame = (FrameItem*) aux;
-        uint32_t frame_num = frame->frame_num;
-        int victim_pid = frame->pid;
-        ProcessMemoryItem* pvictim = Memory_byPid(pid);
-        PageEntry entry = pmem->pages[i];
-        // page is Valid but read, unswappable and write flags
-        // are 0, so we choose this frame as victim
 
-        if (entry.flags == Valid) {
-            found = 1;
-
-            // we swap pages
-            uint32_t frame_num = entry.frame_number;
-            // we need to retrieve the pid of the "victim" process
-            int victim_pid = m.frame_to_pid[frame_num];
-            ProcessMemoryItem* pvictim = Memory_byPid(pid);
-
-            // now we can remove the frame from the frame_list
-            // of the victim process
-
-            FrameItem* victim = ProcessMemoryItem_findFrame(&pvictim->frame_list, frame_num);
-            ListItem* prev = victim->list.prev;
-            List_detach(&pvictim->frame_list, (ListItem*) victim);
-            
-            // now we add the victim frame on disk memory
-            add_FrameDiskItem(victim);
-
-            // now we swap-in the disk_item
-            remove_FrameDiskItem(disk_item);
-            ProcessMemoryItem_addFrame(&pmem->frame_list, prev, disk_item);
-
-        }
     }
+   
+
 }

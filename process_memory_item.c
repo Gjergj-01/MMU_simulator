@@ -32,7 +32,7 @@ void ProcessMemoryItem_init(ProcessMemoryItem* item, int pid) {
     // the memset fills the first n bytes of the memory area pointed
     // by s with the constant c
     // we initialize the page table setting each page 
-    // number to -1
+    // number to 0
     memset(item->pages, 0, sizeof(PageEntry)*NUM_PAGES);
 
     // we set the flags of each page to invalid
@@ -66,13 +66,13 @@ void print_ProcessMemoryItem(ProcessMemoryItem* item) {
         printf("FRAME_NUM: %d\n", frame->frame_num);
         aux = aux->next;
     }
-    int k = -1;
+    int k = 0;
     int index = 0;
     for (int i = 0; i < NUM_PAGES; i++) {
         if (item->pages[i].frame_number == 0 && item->pages[i].flags == Valid) {
             if (k == -1) {
                 k = i;
-                index = i-1;
+                index = i;
             }
             index++;
         }

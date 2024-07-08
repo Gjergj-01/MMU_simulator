@@ -47,8 +47,9 @@ FrameItem* DiskItem_alloc() {
 void add_FrameDiskItem(FrameItem* item) {
     // we check that the frame is not already present in the disk
     int pid = item->pid;
+    printf("pid: %d\n", pid);
     uint32_t frame_num = item->frame_num;
-    assert(!Find_FrameDiskItem(pid, frame_num) && "page alredy in disk memory");
+    assert(!Find_FrameDiskItem(pid, frame_num) && "page alredy on disk memory");
 
     List_insert(&dm.diskFrame_list, dm.diskFrame_list.last, (ListItem*) item);
 }

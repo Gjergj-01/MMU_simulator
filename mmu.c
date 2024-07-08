@@ -21,31 +21,31 @@ uint32_t getPhysicalAddress(MMU* mmu, LogicalAddress logical_address) {
     return physical_address;
 }
 
-void MMU_writeByte(MMU* mmu, int pos, char c) {
-    // we check that the index is valid
-    assert((pos >= 0 && pos < mmu->num_pages) && "index out of range");
+// void MMU_writeByte(MMU* mmu, int pos, char c) {
+//     // we check that the index is valid
+//     assert((pos >= 0 && pos < mmu->num_pages) && "index out of range");
 
-    // we check that the flag is valid 
-    // in this case it can be "write_bit" or "read_bit"
-    assert((c == write_bit || c == read_bit) && "invalid flag");
+//     // we check that the flag is valid 
+//     // in this case it can be "write_bit" or "read_bit"
+//     assert((c == write_bit || c == read_bit) && "invalid flag");
 
-    // if flag and pos are valid we associate the flag to the corresponding page
-    mmu->pages[pos].flags = c;
+//     // if flag and pos are valid we associate the flag to the corresponding page
+//     mmu->pages[pos].flags = c;
     
-    return;
-}
+//     return;
+// }
 
-char* MMU_readByte(MMU* mmu, int pos) {
-    // we check that the index is valid
-    assert((pos >= 0 && pos < mmu->num_pages) && "index out of range");
+// char* MMU_readByte(MMU* mmu, int pos) {
+//     // we check that the index is valid
+//     assert((pos >= 0 && pos < mmu->num_pages) && "index out of range");
 
-    // if so we read the flag associated to the corresponding page
-    char* flag = NULL;
-    *flag = mmu->pages[pos].flags;
+//     // if so we read the flag associated to the corresponding page
+//     char* flag = NULL;
+//     *flag = mmu->pages[pos].flags;
 
-    return flag; 
+//     return flag; 
 
-}
+// }
 
 
 
