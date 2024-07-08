@@ -35,3 +35,9 @@ FrameItem* add_Frame(FrameItem* item);
 //void add_Pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags);
 
 void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags);
+void simulate_work(ProcessMemoryItem* pmem, int pos, uint32_t flags);
+
+void MMU_writeByte(ProcessMemoryItem* pmem, int pos, char c);
+char* MMU_readByte(ProcessMemoryItem* pmem, int pos);
+void MMU_exception(ProcessMemoryItem* pmem, int pos);
+void second_chance(ProcessMemoryItem* pmem, int pos);

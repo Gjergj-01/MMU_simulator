@@ -12,10 +12,12 @@ int main(int argc, char** argv) {
     // create first process
     ProcessMemoryItem* p1 = Memory_addProcessItem(0);
     assign_pages(p1, 1000, Valid);
+
+    //printf("FREE FRAMES: \n");
     //print_PhysicalMemory();
 
-    int free_frames = Memory_freePages();
-    printf("MEMORY_FREE_FRAMES: %d\n", free_frames);
+    //int free_frames = Memory_freePages();
+    //printf("MEMORY_FREE_FRAMES: %d\n", free_frames);
 
     // create second process
     ProcessMemoryItem* p2 = Memory_addProcessItem(1);
@@ -30,7 +32,9 @@ int main(int argc, char** argv) {
     assign_pages(p2, 8, Valid);
     print_ProcessMemoryItem(p2);
 
+    //printf("PHYSICAL MEMORY: \n");
     //print_PhysicalMemory();
-    //print_DiskMemory();
+    printf("DISK MEMORY: \n");
+    print_DiskMemory();
     return 0;
 }

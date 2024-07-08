@@ -33,17 +33,32 @@ void ProcessMemoryItem_init(ProcessMemoryItem* item, int pid) {
     // by s with the constant c
     // we initialize the page table setting each page 
     // number to -1
-    memset(item->pages, -1, sizeof(PageEntry)*NUM_PAGES);
+    memset(item->pages, 0, sizeof(PageEntry)*NUM_PAGES);
 
     // we set the flags of each page to invalid
-    for (int i = 0; i < NUM_PAGES; i++) {
-        item->pages[i].flags &= (~Valid); 
-        //item->pages[i].frame_number = i;
+    //for (int i = 0; i < NUM_PAGES; i++) {
+    //    item->pages[i].flags &= (~Valid); 
+    //}
+}
+
+FrameItem* ProcessMemoryItem_findFrame(ListHead* head, uint32_t frame_num) {
+    ListItem* aux = head->first;
+    while (aux) {
+        FrameItem* frame = (FrameItem*) aux;
+        if (frame->frame_num == frame_num) {
+            return frame;
+        }
+        aux = aux->next;
     }
+    return 0;
+}
+
+void ProcessMemoryItem_addFrame(ListHead* head, ListItem* prev, FrameItem* frame) {
+    List_insert(head, prev, (ListItem*) frame);
 }
 
 void print_ProcessMemoryItem(ProcessMemoryItem* item) {
-    printf("Process with pid: %d\n", item->pid);
+    printf("Process with PID: %d\n", item->pid);
 
     ListItem* aux = item->frame_list.first;
     while (aux) {
@@ -51,10 +66,22 @@ void print_ProcessMemoryItem(ProcessMemoryItem* item) {
         printf("FRAME_NUM: %d\n", frame->frame_num);
         aux = aux->next;
     }
-    printf("index of last occupied page: ");
+    int k = -1;
     int index = 0;
     for (int i = 0; i < NUM_PAGES; i++) {
-        if (item->pages[i].frame_number == -1) {
+        if (item->pages[i].frame_number == 0 && item->pages[i].flags == Valid) {
+            if (k == -1) {
+                k = i;
+                index = i-1;
+            }
+            index++;
+        }
+    }
+    printf("Pages from index %d to index %d are mapped on disk\n", k, index);
+    printf("index of first free page: ");
+    index = 0;
+    for (int i = 0; i < NUM_PAGES; i++) {
+        if (item->pages[i].frame_number == 0 && item->pages[i].flags == 0) {
             index = i;
             break;
         }
