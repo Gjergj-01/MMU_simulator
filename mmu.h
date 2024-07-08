@@ -20,9 +20,10 @@
 
 typedef enum {
     Valid = 0x1,
-    Unswappable = 0x2,
-    read_bit = 0x4,
-    write_bit = 0x8
+    Invalid = 0x2, 
+    Unswappable = 0x4,
+    read_bit = 0x8,
+    write_bit = 0x16
 } Flags;
 
 typedef struct LogicalAddress {

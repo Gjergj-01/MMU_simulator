@@ -36,9 +36,9 @@ void ProcessMemoryItem_init(ProcessMemoryItem* item, int pid) {
     memset(item->pages, 0, sizeof(PageEntry)*NUM_PAGES);
 
     // we set the flags of each page to invalid
-    //for (int i = 0; i < NUM_PAGES; i++) {
-    //    item->pages[i].flags &= (~Valid); 
-    //}
+    for (int i = 0; i < NUM_PAGES; i++) {
+        item->pages[i].flags = Invalid; 
+    }
 }
 
 FrameItem* ProcessMemoryItem_findFrame(ListHead* head, uint32_t frame_num) {

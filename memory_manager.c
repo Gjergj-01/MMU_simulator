@@ -104,7 +104,7 @@ void print_PhysicalMemory() {
 }
 
 /*
-    Given the frame_num we retireve the 
+    Given the frame_num we retireve the  THIS NEEDS TO BE FIXED
     frame_item
 */
 
@@ -139,20 +139,23 @@ FrameItem* add_Frame(FrameItem* item) {
     This function mapps pages into frames. Until we have enough physical memory
     we map it in the physical memory, then we "map" the pages in the disk memory.
     NOTE: Here the disk memory holds FrameItems but in this case the field "frame_num"
-          memorizes the index of the paging table and not the frame number.
+          memorizes the index of the paging table and not the frame number. We do this
+          because when we need to swap-in a frame we want to know to which process
+         (we do this thanks to the pid) and to which page in the paging table corresponds
+         the frame.
 */
 
 void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
     int index = -1;
     // we check for the index from which we can start writing new pages
     for (int i = 0; i < NUM_PAGES; i++) {
-        if (pmem->pages[i].frame_number == 0 && pmem->pages[i].flags == 0) {
+        if (pmem->pages[i].flags == Invalid) {
             index = i;
             break;
         }
     }
 
-    //printf("PID: %d  ->  [index: %d]\n",pmem->pid, index);
+    printf("PID: %d  ->  [index: %d]\n",pmem->pid, index);
 
     if (index == -1) index = 0;
 
@@ -173,7 +176,7 @@ void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
             }
             new_frame->pid = pmem->pid;
             pmem->pages[i+index].frame_number = new_frame->frame_num;
-            pmem->pages[i+index].flags |= flags;
+            pmem->pages[i+index].flags = flags;
             m.frame_to_pid[new_frame->frame_num] = pmem->pid;
             List_detach(&m.frame_list, (ListItem*) new_frame);
             List_insert(&pmem->frame_list, pmem->frame_list.last, (ListItem*) new_frame);
@@ -189,55 +192,61 @@ void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
 
 }
 
-void simulate_work(ProcessMemoryItem* pmem, int pos, uint32_t flags) {
-    // we check that the index is Valid
-    assert(pos >= 0 && pos < NUM_PAGES && "invalid index");
+// void simulate_work(ProcessMemoryItem* pmem, int pos, uint32_t flags) {
+//     // we check that the index is Valid
+//     assert(pos >= 0 && pos < NUM_PAGES && "invalid index");
 
-    // we check that the page has been assigend, if not we check the flag.
-    // If this is "unswappable" we must put the page in the physical memory
-    // so if there is no free space we call the second chance algorithm
-    // otherwise we just assign it to a free frame. If the flag is not 
-    // unswappable we can just call the assign_pages function
+//     // we check that the page has been assigend, if not we check the flag.
+//     // If this is "unswappable" we must put the page in the physical memory
+//     // so if there is no free space we call the second chance algorithm
+//     // otherwise we just assign it to a free frame. If the flag is not 
+//     // unswappable we can just call the assign_pages function
 
-    if (pmem->pages[pos].flags == 0) {
+//     if (pmem->pages[pos].flags == 0) {
 
-        if (flags == (Valid + Unswappable)) {
-            if (Memory_freePages() > 0) {
-                assign_pages(pmem, 1, (Valid + Unswappable));
-            }
-            else {
-                MMU_exception(pmem, pos);
-            }
-        }
-    }
+//         if (flags == (Valid + Unswappable)) {
+//             if (Memory_freePages() > 0) {
+//                 assign_pages(pmem, 1, (Valid + Unswappable));
+//             }
+//             else {
+//                 MMU_exception(pmem, pos);
+//             }
+//         }
+//     }
 
-    else {
-        if (pmem->pages[pos].frame_number != 0) {
-            if (flags == write_bit) {
-                MMU_writeByte(pmem, pos, flags);
-            }
-            else {
-                MMU_readByte(pmem, pos);
-            }
-        }
-        else {
-            MMU_exception(pmem, pos);
-        }
-    }
+//     else {
+//         if (pmem->pages[pos].frame_number != 0) {
+//             if (flags == write_bit) {
+//                 MMU_writeByte(pmem, pos, flags);
+//             }
+//             else {
+//                 MMU_readByte(pmem, pos);
+//             }
+//         }
+//         else {
+//             MMU_exception(pmem, pos);
+//         }
+//     }
 
 
-}   
+// }   
 
 void MMU_writeByte(ProcessMemoryItem* pmem, int pos, char c) {
     // we check that the index is valid 
     assert((pos >= 0 && pos < NUM_PAGES) && "invalid index");
 
-    // we check that the flag is valid 
-    // in this case it can be "write_bit" or "read_bit"
-    assert((c == write_bit || c == read_bit) && "invalid flag");
+    if (pmem->pages[pos].flags == Valid && pmem->pages[pos].frame_number == 0) {
+        // we need to swap in the page that is on disk memory
+        MMU_exception(pmem, pos);
+    }
+    else {
+        // the page is in physical memory so we can simply write the character
+        pmem->pages[pos].c = c;
 
-    // if flag and pos are valid we associate the flag to the corresponding page
-    pmem->pages[pos].flags |= c;
+    }
+
+    // we set the flags to write_bit;
+    pmem->pages[pos].flags |= write_bit;
 
 }
 
@@ -246,16 +255,23 @@ char* MMU_readByte(ProcessMemoryItem* pmem, int pos) {
     assert((pos >= 0 && pos < NUM_PAGES) && "index out of range");
 
     // if so we read the flag associated to the corresponding page
-    char* flag = 0;
-    *flag = pmem->pages[pos].flags;
+    if (pmem->pages[pos].flags == Valid && pmem->pages[pos].frame_number == 0) {
+        // we need to swap in the page that is on disk memory
+        MMU_exception(pmem, pos);
+    }
+    
+    // now we can read the character
+    char* c = 0;
+    *c = pmem->pages[pos].c;
 
-    // we also set the flags to read_bit
+    // we set the flags to read_bit
     pmem->pages[pos].flags |= read_bit;
 
-    return flag;
+    return c;
 }
 
 void MMU_exception(ProcessMemoryItem* pmem, int pos) {
+    printf("MMU_exception\n");
     second_chance(pmem, pos);
 }
 
@@ -302,13 +318,13 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
                             List_detach(&process->frame_list, (ListItem*) victim);
                             // now we save the frame victim on memory disk
                             victim->frame_num = k;
-                            printf("victim_pid %d\n", victim->pid);
+                            //printf("victim_pid %d\n", victim->pid);
                             add_FrameDiskItem(victim);
 
                             ProcessMemoryItem_addFrame(&pmem->frame_list, pmem->frame_list.last, disk_item);
                             m.frame_to_pid[v_frame_num] = pmem->pid;
 
-                            printf("[Swapped-out page with index %d of porcess with PID %d\n",
+                            printf("[Swapped-out page with index %d of process with PID %d\n",
                                 k, victim_pid);
                             printf(" Swapped-in frame corresponding to page %d of process with PID %d]\n\n",
                                 disk_item->frame_num, pid);
@@ -327,9 +343,5 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
 
             item = item->next;
         }
-
-
     }
-   
-
 }
