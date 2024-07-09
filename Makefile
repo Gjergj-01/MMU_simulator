@@ -4,7 +4,7 @@ AR = ar
 
 BINS = mmu_test memory_manager_test
 
-OBJS = disk.o frame_item.o linked_list.o memory_manager.o mmu.o process_memory_item.o #second_chance.o 
+OBJS = disk.o frame_item.o linked_list.o memory_manager.o mmu.o process_memory_item.o 
 
 HEADERS = constants.h disk.h frame_item.h linked_list.h memory_manager.h mmu.h process_memory_item.h 
 

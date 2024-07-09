@@ -38,7 +38,7 @@ typedef struct PageEntry {
 } PageEntry;
 
 typedef struct MMU {
-    PageEntry* pages;   // paging table
+    PageEntry* pages;   
     uint32_t num_pages;
 } MMU;
 
@@ -46,8 +46,4 @@ typedef uint32_t PhysicalAddress;
 
 uint32_t getPhysicalAddress(MMU* mmu, LogicalAddress logical_address);
 
-// void MMU_writeByte(MMU* mmu, int pos, char c);
 
-// char* MMU_readByte(MMU* mmu, int pos);
-
-// void MMU_exception(MMU* mmu, int pos, int pid);

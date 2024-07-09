@@ -5,14 +5,9 @@
 #include "frame_item.h"
 
 /*
-    Here we create two records. The first one stores the informations
-    about the process allocating it so we need:
-        1. the pid
-        2. the page number, this way we will be able to retrieve the 
-           page corresponding to that frame in the paging table
-    
-    The second recored simply stores a list keeping track of each 
-    DiskItem allocated
+    Here we create a record that stores the memory on disk.
+    It simply stores a diskFrame_list that keeps track of 
+    the FrameItems mapped on disk memory.
 */
 
 
@@ -24,7 +19,6 @@ void DiskMemory_init();
 void DiskMemory_shutdown();
 void print_DiskMemory();
 
-//FrameItem* add_FrameItem(int pid, uint32_t page_num);
 void add_FrameDiskItem(FrameItem* item);
 FrameItem* Find_FrameDiskItem(int pid, uint32_t page_num);
 FrameItem* remove_FrameDiskItem(FrameItem* disk_item);

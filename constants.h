@@ -8,11 +8,11 @@
 
 /*
     offset = 24 - 14 = 10 
-    quindi, avendo a disposizione 1MB di memoria fisica,
-    un indirizzo di questa sara composto nel seguente modo:
+    thus, since we have 1 MB of physical memory,
+    a physical address will be composed this way:
 
         [frame | offset]
-        10 bit   10 bit
+        10 bits   10 bits
 
-    Nella memoria fisica possiamo quindi avere 1024 frame totali
+    On physical memory we can have a maximum of 1024 frames
 */

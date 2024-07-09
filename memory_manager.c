@@ -10,10 +10,9 @@ GlobalMemoryLayout m;
 /*
     At the beginning the physical memory is all free and 
     the process list contains no processes. So:
-    1. we fill the pages with pid -1 (invalid)
-    2. we initialize all the buffer representing the 
-        physical memory available
-    3. we clear the process list
+    1. we initialize the frames with pid -1 (meaning that they have not 
+        been assigned to any process)
+    2. we clear the process list
 */
 void Memory_init() {
     List_init(&m.frame_list);
@@ -36,23 +35,20 @@ void Memory_init() {
 */
 
 void Memory_shutdown() {
-    while (m.process_list.first) {
-        ProcessMemoryItem* process = (ProcessMemoryItem*) m.process_list.first;
-        Memory_destroyProcessMemoryItem(process);
+    if (m.process_list.size > 0) {
+        while (m.process_list.first) {
+            ProcessMemoryItem* process = (ProcessMemoryItem*) m.process_list.first;
+            Memory_destroyProcessMemoryItem(process);
+        }
     }
-    printf("ALL FINE\n");
 
-    // FrameItem* frame = (FrameItem*) pmem->frame_list.first;
-    // List_detach(&pmem->frame_list, (ListItem*) frame);
-    // free(frame);
-
-    //while (m.frame_list.first) {
-    //    FrameItem* frame = (FrameItem*) m.frame_list.first;
-    //    printf("frame_num: %d\n", frame->frame_num);
-    //    List_detach(&m.frame_list, (ListItem*) frame);
-    //    free(frame);
-    //}
-    //printf("ALL FINE\n");
+    if (m.frame_list.size > 0) {
+        while (m.frame_list.first) {
+        FrameItem* frame = (FrameItem*) m.frame_list.first;
+        List_detach(&m.frame_list, (ListItem*) frame);
+        free(frame);
+        }
+    }
 }
 
 
@@ -73,7 +69,6 @@ ProcessMemoryItem* Memory_addProcessItem(int pid) {
 
     // all fine we can add the new process
     ProcessMemoryItem* new_process = ProcessMemoryItem_alloc(pid);
-    //assert(new_process && "can't allocate a ProcessMemoryItem");
     ProcessMemoryItem_init(new_process, pid);
     List_insert(&m.process_list, m.process_list.last, (ListItem*) new_process);
     return new_process;
@@ -87,7 +82,8 @@ uint32_t Memory_freePages() {
 /*
     To destroy a ProcessMemoryItem we need:
     1. Set to -1 (invalid) the pid associated to each frame
-    2. Detach the ProcessMemoryItem from the process_list
+    2. Free all the frames associated to that process
+    3. Detach the ProcessMemoryItem from the process_list
 */
 
 void Memory_destroyProcessMemoryItem(ProcessMemoryItem* pmem) {
@@ -103,9 +99,12 @@ void Memory_destroyProcessMemoryItem(ProcessMemoryItem* pmem) {
     }
 
     List_detach(&m.process_list, (ListItem *) pmem);
-    //ProcessMemoryItem_free(item);
     free(pmem);
 }
+
+/*
+    Prints the physical memory still available
+*/
 
 void print_PhysicalMemory() {
     ListItem* aux = m.frame_list.first;
@@ -118,8 +117,8 @@ void print_PhysicalMemory() {
 }
 
 /*
-    Given the frame_num we retireve the  THIS NEEDS TO BE FIXED
-    frame_item
+    Given the frame_num we retireve the frame_item 
+    (if this is available in the physical memory)
 */
 
 FrameItem* Find_frame(int pid, uint32_t frame_num) {
@@ -150,13 +149,16 @@ FrameItem* add_Frame(FrameItem* item) {
 
 
 /*
-    This function mapps pages into frames. Until we have enough physical memory
+    This function maps pages into frames. Until we have enough physical memory
     we map it in the physical memory, then we "map" the pages in the disk memory.
     NOTE: Here the disk memory holds FrameItems but in this case the field "frame_num"
           memorizes the index of the paging table and not the frame number. We do this
           because when we need to swap-in a frame we want to know to which process
-         (we do this thanks to the pid) and to which page in the paging table corresponds
-         the frame.
+          (we do this thanks to the pid) and to which page in the paging table corresponds
+          the frame.
+    When a prcocess requests tha assignment of a page with flag unswappable, we need to map
+    this in the physical memory. If we don't have enough free space we first map the page 
+    in the disk memory, then we call an MMU_exception that swaps-in the page.
 */
 
 void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
@@ -195,6 +197,17 @@ void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
             List_detach(&m.frame_list, (ListItem*) new_frame);
             List_insert(&pmem->frame_list, pmem->frame_list.last, (ListItem*) new_frame);
         }
+        else if (flags == (Valid + Unswappable)) { 
+            // we map the pages on disk 
+            pmem->pages[i+index].flags = (Valid + Unswappable);
+            FrameItem* new_frame = FrameItem_alloc();
+            FrameItem_init(new_frame, pmem->pid, i+index);
+            //printf("ASSING -> Page_index: %d, PID: %d   ", new_frame->frame_num, new_frame->pid);
+            add_FrameDiskItem(new_frame);
+            // now, since the page is Unswappable, we need
+            // to swap it in, on physical memory
+            MMU_exception(pmem, index+i);
+        }
         else {
             // we finished space so we need to "map" the pages on disk
             pmem->pages[i+index].flags = Valid;
@@ -205,6 +218,13 @@ void assign_pages(ProcessMemoryItem* pmem, int num_pages, uint32_t flags) {
     }
 
 }
+
+/*
+    If a page has flag 'Invalid', it means it has not been allocated so if we try
+    to access that page we generate a SEGMENTATION_FALUT and terminate the program.
+    If a page has flag 'Valid' but frame_num 0, it means that the page has been allocated
+    but it's stored on disk memory, so we call an MMU_exception and swap it in.
+*/
 
 void MMU_writeByte(ProcessMemoryItem* pmem, int pos, char c) {
     // we check that the index is valid 
@@ -235,7 +255,7 @@ char MMU_readByte(ProcessMemoryItem* pmem, int pos) {
     // if we try to access a page not allocated we genrate a PAGE_FAULT
     assert(pmem->pages[pos].flags != Invalid && "page_fault(segmentation_fault)");
 
-    // if so we read the flag associated to the corresponding page
+    // we read the flag associated to the corresponding page
     if (pmem->pages[pos].flags == Valid && pmem->pages[pos].frame_number == 0) {
         // we need to swap in the page that is on disk memory
         MMU_exception(pmem, pos);
@@ -256,6 +276,12 @@ void MMU_exception(ProcessMemoryItem* pmem, int pos) {
     second_chance(pmem, pos);
 }
 
+/*
+    To access the physical memory we need to access each ProcessMemoryItem and
+    explore each frame_list. If we find a page with flad 'Valid' we choose that
+    frame as victim; if the flag is 'Unswappable' or 'Invalid' we skip to the next 
+    page otherwise we set the flag to 'Valid' and move on to the next page.
+*/
 
 void second_chance(ProcessMemoryItem* pmem, int pos) {
     int pid = pmem->pid;
@@ -272,6 +298,7 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
     int found = 0;
     while(!found) {
 
+        // here we start exploring the processes
         ListItem* item = m.process_list.first;
         while (item) {
             if (found) break;
@@ -279,12 +306,13 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
             ProcessMemoryItem* process = (ProcessMemoryItem*) item;
             int victim_pid = process->pid;
 
+            // now for each process we explore his frames
             ListItem* aux = process->frame_list.first;
             while (aux) {
                 if (found) break;
 
                 FrameItem* victim = (FrameItem*) aux;
-                // now we need to retireve the PageEntry 
+                // now we need to retrieve the PageEntry 
                 uint32_t v_frame_num = victim->frame_num;
                 for (int k = 0; k < NUM_PAGES; k++) {
                     PageEntry entry = process->pages[k];
@@ -298,7 +326,6 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
                             List_detach(&process->frame_list, (ListItem*) victim);
                             // now we save the frame victim on memory disk
                             victim->frame_num = k;
-                            //printf("victim_pid %d\n", victim->pid);
                             add_FrameDiskItem(victim);
 
                             ProcessMemoryItem_addFrame(&pmem->frame_list, pmem->frame_list.last, disk_item);
@@ -315,8 +342,11 @@ void second_chance(ProcessMemoryItem* pmem, int pos) {
                                 || entry.flags == (Valid + Unswappable + write_bit) || entry.flags == (Valid + Unswappable + read_bit + write_bit)) {
                         continue;
                     }
+                    else if (entry.flags == Invalid) {
+                        continue;
+                    }
                     else {
-                        entry.flags = Valid;
+                        process->pages[k].flags = Valid;
                     }
                 }
                 aux = aux->next;

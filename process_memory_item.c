@@ -28,9 +28,7 @@ void ProcessMemoryItem_init(ProcessMemoryItem* item, int pid) {
     List_init(&item->frame_list);
     item->list.prev = item->list.next = 0;
     item->pid = pid;
-    // void *memset(void *s, int c, size_t n);
-    // the memset fills the first n bytes of the memory area pointed
-    // by s with the constant c
+
     // we initialize the page table setting each page 
     // number to 0
     memset(item->pages, 0, sizeof(PageEntry)*NUM_PAGES);
@@ -40,6 +38,11 @@ void ProcessMemoryItem_init(ProcessMemoryItem* item, int pid) {
         item->pages[i].flags = Invalid; 
     }
 }
+
+/*
+    Given a frame_num looks in the frame_list of the process for 
+    a frame with that frame_num
+*/
 
 FrameItem* ProcessMemoryItem_findFrame(ListHead* head, uint32_t frame_num) {
     ListItem* aux = head->first;
@@ -57,6 +60,11 @@ void ProcessMemoryItem_addFrame(ListHead* head, ListItem* prev, FrameItem* frame
     List_insert(head, prev, (ListItem*) frame);
 }
 
+/*
+    Prints the physcial mameory associated to the process and 
+    his first free page.
+*/
+
 void print_ProcessMemoryItem(ProcessMemoryItem* item) {
     printf("Process with PID: %d\n", item->pid);
 
@@ -66,18 +74,7 @@ void print_ProcessMemoryItem(ProcessMemoryItem* item) {
         printf("FRAME_NUM: %d\n", frame->frame_num);
         aux = aux->next;
     }
-    // int k = 0;
-    // int index = 0;
-    // for (int i = 0; i < NUM_PAGES; i++) {
-    //     if (item->pages[i].frame_number == 0 && item->pages[i].flags == Valid) {
-    //         if (k == -1) {
-    //             k = i;
-    //             index = i;
-    //         }
-    //         index++;
-    //     }
-    // }
-    // printf("Pages from index %d to index %d are mapped on disk\n", k, index);
+
     printf("index of first free page: ");
     int index = 0;
     for (int i = 0; i < NUM_PAGES; i++) {

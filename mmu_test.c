@@ -34,20 +34,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    // for (int i = 0; i < 16; i++) {
-    //     LogicalAddress logical_address;
-    //     logical_address.page_number = i;
-    //     logical_address.offset = 0x1;
-    //     printf("logical address: [p: %x, o: %x] -> ", 
-    //         logical_address.page_number,
-    //         logical_address.offset);
-        
-    //     PhysicalAddress physical_address = getPhysicalAddress(&mmu, logical_address);
-    //     printf("physical_address: [%x] \n", physical_address);
-    // }
-
-
     return 0;
-
 
 }
