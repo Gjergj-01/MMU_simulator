@@ -156,7 +156,7 @@ FrameItem* add_Frame(FrameItem* item) {
           because when we need to swap-in a frame we want to know to which process
           (we do this thanks to the pid) and to which page in the paging table corresponds
           the frame.
-    When a prcocess requests tha assignment of a page with flag unswappable, we need to map
+    When a prcocess requests the assignment of a page with flag unswappable, we need to map
     this in the physical memory. If we don't have enough free space we first map the page 
     in the disk memory, then we call an MMU_exception that swaps-in the page.
 */
@@ -278,7 +278,7 @@ void MMU_exception(ProcessMemoryItem* pmem, int pos) {
 
 /*
     To access the physical memory we need to access each ProcessMemoryItem and
-    explore each frame_list. If we find a page with flad 'Valid' we choose that
+    explore each frame_list. If we find a page with flag 'Valid' we choose that
     frame as victim; if the flag is 'Unswappable' or 'Invalid' we skip to the next 
     page otherwise we set the flag to 'Valid' and move on to the next page.
 */

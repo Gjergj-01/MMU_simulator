@@ -1,5 +1,10 @@
-*.o
-*~
-\#*
-*.exe
+# Compiled Object files
+.o 
+
+# Compiled static libraries
 *.a
+*.lib
+
+# Executables 
+*.exe 
+*.out 
